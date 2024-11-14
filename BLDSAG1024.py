@@ -256,7 +256,7 @@ class BLDCSAG1024:
             # latents에는 latent space의 정보 -> background 마스크 영역만 latent 정보 가져오기 
             # source_latents에는 원본이미지의 latent space 차원 정보
             if i >= blending_start_step:
-                    latents = latents * eroded_mask + source_latents * (1 - eroded_mask)  #eroded_mask_2 or eroded_mask
+                    latents = latents * eroded_mask + source_latents * (1 - eroded_mask)  
         
           # (128, 128) 형태
 
