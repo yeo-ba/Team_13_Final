@@ -1,7 +1,7 @@
-This model utilizes classifier free guidance, ControlNet, Blended Latent Diffusion, and Self-Attention Guidance.
+# This model utilizes classifier free guidance, ControlNet, Blended Latent Diffusion, and Self-Attention Guidance.
 
 
-## Mask 생성을 위한 그리드 설정을 위한 값은 다음과 같습니다.
+## Coordinate to indicate input_box for mask generation
 #### x1 : x min
 #### y1 : y min
 #### x2 : x max
