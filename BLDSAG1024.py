@@ -23,7 +23,7 @@ class CrossAttnStoreProcessor:
         # Query 생성
         query = attn.to_q(hidden_states)
 
-        # Encoder Hidden States 설정
+        # Encoder Hidden States 설정-> encoder_hidden_states None이면 그냥 attn layer의 hidden_states(현재 레이어의 입력 or 이전 레이어의 출력값) 사용
         encoder_hidden_states = encoder_hidden_states or hidden_states
         if attn.norm_cross and encoder_hidden_states is not hidden_states:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
@@ -158,8 +158,10 @@ class BLDCSAG1024:
                 output_tensor = output
             map_size = output_tensor.shape[-2:]     # take the contents of the last two indices, i.e. h, w from (batch_size, channels, h, w)
 
-        # 어텐션 프로세서와 후크 등록
+        # Unet mid block의 첫 번째 어텐션 레이어에 attn1.processor에 어텐션 프로세서(store_processor) 연결
         self.unet.mid_block.attentions[0].transformer_blocks[0].attn1.processor = store_processor
+        
+        # Unet mid block의 첫 번째 어텐션 레이어에 forward 후크 등록 -> forward pass마다 get_map_size 함수 실행
         self.unet.mid_block.attentions[0].register_forward_hook(get_map_size)
 
         # 타임스텝 루프 시작
@@ -189,7 +191,7 @@ class BLDCSAG1024:
                 return_dict=False,        # controlnet의 출력을 딕셔너리 형태가 아닌 튜플 형태로 반환
             )
 
-            # UNet을 통해 노이즈 예측, 괄호 안 변수를 input으로 취하고, .sample을 사용하여 예측된 노이즈 텐서를 output으로 반환
+            # UNet에 필요한 정보를 입력하여 해당 time step에서의 노이즈 예측, 괄호 안 변수를 input으로 취하고, .sample을 사용하여 예측된 노이즈 텐서를 output으로 반환
             noise_pred = self.unet(
                 latent_model_input,
                 t,
