@@ -25,8 +25,6 @@ class CrossAttnStoreProcessor:
 
         # Encoder Hidden States 설정-> encoder_hidden_states None이면 그냥 attn layer의 hidden_states(현재 레이어의 입력 or 이전 레이어의 출력값) 사용
         encoder_hidden_states = encoder_hidden_states or hidden_states
-        
-        # hidden_states 사용하면 Self Atenttion, encoder_hidden_states 입력 받으면 Cross Atenttion
         if attn.norm_cross and encoder_hidden_states is not hidden_states:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
