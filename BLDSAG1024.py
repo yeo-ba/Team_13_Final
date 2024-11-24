@@ -88,6 +88,7 @@ class BLDCSAG1024:
         generator=None,
         sag_scale=0.8,
         seed = None,
+        threshold = 1.0,
     ):
         # 랜덤 시드 설정
         if generator is None:
@@ -217,7 +218,7 @@ class BLDCSAG1024:
                 eps = self.pred_epsilon(latents, noise_pred_uncond, t)
 
                 # SAG 마스킹 이용한 noise prediction
-                degraded_latents = self.sag_masking(pred_x0, uncond_attn, map_size, t, eps)
+                degraded_latents = self.sag_masking(pred_x0, uncond_attn, map_size, t, eps,threshold)
 
                 # latent map 저장
                 # if i % 10 == 0 :
@@ -250,14 +251,16 @@ class BLDCSAG1024:
             # latents 업데이트
             latents = self.scheduler.step(noise_pred, t, latents).prev_sample
 
-            
+            noise_source_latents = self.scheduler.add_noise(source_latents, torch.randn_like(latents), t)
             
             # background 마스크 이용해서 Blended latent diffusion denoise step 진행 
             # latents에는 latent space의 정보 -> background 마스크 영역만 latent 정보 가져오기 
             # source_latents에는 원본이미지의 latent space 차원 정보
             if i >= blending_start_step:
-                    latents = latents * eroded_mask + source_latents * (1 - eroded_mask)  
-        
+                latents = latents * eroded_mask + noise_source_latents * (1 - eroded_mask)  
+                
+            
+                
           # (128, 128) 형태
 
         # 이미지 출력
@@ -405,17 +408,20 @@ class BLDCSAG1024:
         return pred_eps
 
     # sag_masking 함수 정의
-    def sag_masking(self, original_latents, attn_map, map_size, t, eps):
-        # 어텐션 맵의 크기 및 Latent 크기 가져오기
-        bh, hw1, hw2 = attn_map.shape
+    def sag_masking(self, original_latents, attn_map, map_size, t, eps, threshold):
+        # 어텐션 맵의 크기 및 Latent 크기 가져오기 <- attn_map.shape = (bh, hw1, hw2)     bh = batch size * head size
+        self.threshold = threshold
+        bh, hw1, hw2 = attn_map.shape   
         b, latent_channel, latent_h, latent_w = original_latents.shape
-        h = self.unet.config.attention_head_dim
+        h = self.unet.config.attention_head_dim         # head의 size
         if isinstance(h, list):
             h = h[-1]
 
         # 어텐션 마스크 생성
         attn_map = attn_map.reshape(b, h, hw1, hw2)
-        attn_mask = attn_map.mean(1).sum(1) > 1.0
+        # head의 평균 -> attn_map.mean(1) 결과의 형태: (b, hw1, hw2)
+        attn_mask = attn_map.mean(1).sum(1) > self.threshold
+        # b, h, w 형태로 attention map 변환
         attn_mask = attn_mask.reshape(b, map_size[0], map_size[1]).unsqueeze(1).repeat(1, latent_channel, 1, 1).type(attn_map.dtype)
         attn_mask = F.interpolate(attn_mask, (latent_h, latent_w), mode='nearest')
 
