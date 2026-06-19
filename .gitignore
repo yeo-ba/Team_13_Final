@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+
+# Generated inference artifacts
+image.png
+mask.png
+canny.png
+output.png
+
+# Large local model checkpoints
+pretrained_checkpoint/
+sam-hq/
